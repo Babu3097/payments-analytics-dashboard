@@ -380,11 +380,14 @@ function renderKPIs(volume, approval) {
   const revenue = (totalVolume * 0.0184).toFixed(1); // illustrative avg-ticket-derived figure
   const fraudRate = 0.34;
 
+  // `dir` is which way the number literally moved (arrow shape); `good`
+  // is whether that move is favourable (colour) — kept separate because
+  // for fraud rate a *down* arrow is the *good* outcome.
   const tiles = [
-    { label: 'Total transactions', value: totalVolume.toLocaleString() + 'k', delta: `+${volDelta}% vs period start`, up: true },
-    { label: 'Avg approval rate', value: avgApproval.toFixed(1) + '%', delta: `+${apprDelta} pts vs period start`, up: true },
-    { label: 'Revenue (illustrative)', value: '£' + revenue + 'm', delta: 'Derived from volume × avg ticket', up: null },
-    { label: 'Fraud rate', value: fraudRate + '%', delta: '−0.06 pts vs prior period', up: true },
+    { label: 'Total transactions', value: totalVolume.toLocaleString() + 'k', delta: `+${volDelta}% vs period start`, dir: 'up', good: true },
+    { label: 'Avg approval rate', value: avgApproval.toFixed(1) + '%', delta: `+${apprDelta} pts vs period start`, dir: 'up', good: true },
+    { label: 'Revenue (illustrative)', value: '£' + revenue + 'm', delta: 'Derived from volume × avg ticket', dir: null, good: null },
+    { label: 'Fraud rate', value: fraudRate + '%', delta: '−0.06 pts vs prior period', dir: 'down', good: true },
   ];
 
   const grid = document.getElementById('kpiGrid');
@@ -392,8 +395,8 @@ function renderKPIs(volume, approval) {
   tiles.forEach(t => {
     const div = document.createElement('div');
     div.className = 'kpi-tile';
-    const deltaClass = t.up === null ? '' : (t.up ? 'up' : 'down-bad');
-    const arrow = t.up === null ? '' : (t.up
+    const deltaClass = t.good === null ? '' : (t.good ? 'up' : 'down-bad');
+    const arrow = t.dir === null ? '' : (t.dir === 'up'
       ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 15l6-6 6 6"/></svg>'
       : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>');
     div.innerHTML = `
@@ -431,7 +434,9 @@ document.querySelectorAll('.toggle-table').forEach(btn => {
     const chart = target.previousElementSibling;
     const showingTable = !target.hidden;
     target.hidden = showingTable;
-    chart.hidden = !showingTable;
+    // SVGElement has no reflecting `.hidden` IDL property, unlike HTMLElement,
+    // so toggling it here would silently no-op — style.display works on any element.
+    chart.style.display = showingTable ? 'none' : '';
     btn.textContent = showingTable ? 'View as table' : 'View as chart';
   });
 });

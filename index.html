@@ -1,0 +1,440 @@
+<title>Payments Analytics Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+  :root {
+    --page: #f9f9f7;
+    --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --gridline: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --good: #0ca30c;
+    --good-text: #006300;
+    --critical: #d03b3b;
+    --chip-bg: #eef1f0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #0d0d0d;
+      --surface-1: #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --gridline: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --good: #0ca30c;
+      --good-text: #0ca30c;
+      --critical: #e66767;
+      --chip-bg: #232322;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --good: #0ca30c;
+    --good-text: #0ca30c;
+    --critical: #e66767;
+    --chip-bg: #232322;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-block: 24px 48px; }
+
+  .banner {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 16px;
+  }
+  .banner svg { width: 14px; height: 14px; flex: 0 0 auto; }
+
+  .head { margin-bottom: 20px; }
+  .head h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+  .head p { font-size: 13.5px; color: var(--text-secondary); margin: 0; max-width: 70ch; line-height: 1.55; }
+
+  .filter-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin: 18px 0 20px;
+  }
+  .filter-chip {
+    font-size: 12.5px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--chip-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .filter-chip.active {
+    background: var(--series-1);
+    color: #fff;
+    border-color: var(--series-1);
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 700px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+
+  .kpi-tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .kpi-tile .label { font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .kpi-tile .value { font-size: 24px; font-weight: 700; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .kpi-tile .delta { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+  .kpi-tile .delta svg { width: 12px; height: 12px; }
+  .delta.up { color: var(--good-text); }
+  .delta.down-bad { color: var(--critical); }
+
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  @media (max-width: 800px) { .chart-row { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px 12px;
+    position: relative;
+  }
+  .card h2 { font-size: 13.5px; font-weight: 600; margin: 0 0 2px; }
+  .card .sub { font-size: 11.5px; color: var(--text-muted); margin: 0 0 10px; }
+
+  .axis-label { font-size: 10px; fill: var(--text-muted); }
+  .gridline { stroke: var(--gridline); stroke-width: 1; }
+  .baseline { stroke: var(--baseline); stroke-width: 1; }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 9px;
+    font-size: 11.5px;
+    color: var(--text-primary);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    opacity: 0;
+    transition: opacity 0.1s;
+    white-space: nowrap;
+    z-index: 5;
+  }
+  .tooltip .t-label { color: var(--text-muted); }
+
+  .bar-label { font-size: 11px; fill: var(--text-secondary); }
+  .bar-value { font-size: 11px; fill: var(--text-primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .toggle-table {
+    font-size: 11.5px;
+    color: var(--series-1);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    position: absolute;
+    top: 16px;
+    right: 18px;
+  }
+
+  table.dtable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  table.dtable th {
+    text-align: right;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--gridline);
+  }
+  table.dtable th:first-child, table.dtable td:first-child { text-align: left; }
+  table.dtable td {
+    text-align: right;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--gridline);
+    font-variant-numeric: tabular-nums;
+  }
+  [hidden] { display: none !important; }
+</style>
+
+<div class="wrap">
+  <div class="banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+    Illustrative sample data, built to demonstrate the reporting pattern used in a real payments environment (Signovate Technologies) — not live or real transaction data.
+  </div>
+
+  <div class="head">
+    <h1>Payments Analytics Dashboard</h1>
+    <p>Recreating the star-schema-modelled Power BI reporting I built for Finance, Operations and Fraud stakeholders — transaction volume, approval rates, merchant performance and fraud trends.</p>
+  </div>
+
+  <div class="filter-row" role="group" aria-label="Date range">
+    <button class="filter-chip" data-range="3">Last 3 months</button>
+    <button class="filter-chip" data-range="6">Last 6 months</button>
+    <button class="filter-chip active" data-range="12">Last 12 months</button>
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="chart-row">
+    <div class="card">
+      <h2>Transaction volume</h2>
+      <p class="sub">Monthly, thousands of transactions</p>
+      <svg id="volumeChart" viewBox="0 0 520 220" width="100%"></svg>
+    </div>
+    <div class="card">
+      <h2>Approval rate</h2>
+      <p class="sub">Monthly, % of transactions approved</p>
+      <svg id="approvalChart" viewBox="0 0 520 220" width="100%"></svg>
+    </div>
+  </div>
+
+  <div class="chart-row">
+    <div class="card">
+      <button class="toggle-table" data-target="merchantTable">View as table</button>
+      <h2>Merchant performance</h2>
+      <p class="sub">Revenue by merchant category, current period (£k)</p>
+      <svg id="merchantChart" viewBox="0 0 520 220" width="100%"></svg>
+      <table class="dtable" id="merchantTable" hidden>
+        <tr><th>Category</th><th>Revenue (£k)</th></tr>
+      </table>
+    </div>
+    <div class="card">
+      <button class="toggle-table" data-target="fraudTable">View as table</button>
+      <h2>Fraud cases by type</h2>
+      <p class="sub">Flagged cases, current period</p>
+      <svg id="fraudChart" viewBox="0 0 520 220" width="100%"></svg>
+      <table class="dtable" id="fraudTable" hidden>
+        <tr><th>Type</th><th>Cases</th></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const MONTHS = ['Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'];
+const VOLUME  = [182,190,205,198,211,224,219,233,241,238,252,247]; // thousands
+const APPROVAL = [93.1,93.6,92.8,94.0,94.3,94.9,95.1,95.4,95.2,95.8,96.1,96.4]; // %
+
+const MERCHANTS = [
+  { name: 'Grocery',     value: 412 },
+  { name: 'Electronics', value: 358 },
+  { name: 'Fashion',     value: 291 },
+  { name: 'Travel',      value: 247 },
+  { name: 'Dining',      value: 198 },
+  { name: 'Fuel',        value: 164 },
+];
+
+const FRAUD = [
+  { name: 'Card not present',   value: 86 },
+  { name: 'Account takeover',   value: 54 },
+  { name: 'Friendly fraud',     value: 41 },
+  { name: 'Refund abuse',       value: 27 },
+  { name: 'Identity theft',     value: 19 },
+];
+
+const tooltip = document.getElementById('tooltip');
+function showTooltip(evt, html) {
+  tooltip.innerHTML = html;
+  tooltip.style.opacity = '1';
+  const wrapRect = document.querySelector('.wrap').getBoundingClientRect();
+  tooltip.style.left = (evt.clientX - wrapRect.left + 12) + 'px';
+  tooltip.style.top = (evt.clientY - wrapRect.top - 34) + 'px';
+}
+function hideTooltip() { tooltip.style.opacity = '0'; }
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+// ---- line chart ----
+function drawLineChart(svgId, labels, values, color, unit, fmt) {
+  const svg = document.getElementById(svgId);
+  svg.innerHTML = '';
+  const W = 520, H = 220, padL = 34, padR = 14, padT = 14, padB = 26;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const min = Math.min(...values), max = Math.max(...values);
+  const lo = min - (max - min) * 0.15, hi = max + (max - min) * 0.15;
+  const x = i => padL + (i / (values.length - 1)) * plotW;
+  const y = v => padT + plotH - ((v - lo) / (hi - lo)) * plotH;
+
+  // gridlines (3)
+  for (let g = 0; g <= 2; g++) {
+    const gy = padT + (plotH / 2) * g;
+    svg.appendChild(svgEl('line', { x1: padL, x2: W - padR, y1: gy, y2: gy, class: 'gridline' }));
+  }
+  svg.appendChild(svgEl('line', { x1: padL, x2: padL, y1: padT, y2: H - padB, class: 'baseline' }));
+  svg.appendChild(svgEl('line', { x1: padL, x2: W - padR, y1: H - padB, y2: H - padB, class: 'baseline' }));
+
+  // line path
+  let d = '';
+  values.forEach((v, i) => { d += (i === 0 ? 'M' : 'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1) + ' '; });
+  svg.appendChild(svgEl('path', { d, fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+
+  // endpoint marker (direct label on last point)
+  const lastX = x(values.length - 1), lastY = y(values[values.length - 1]);
+  svg.appendChild(svgEl('circle', { cx: lastX, cy: lastY, r: 4, fill: color, stroke: 'var(--surface-1)', 'stroke-width': 2 }));
+
+  // x-axis labels: first, mid, last
+  [0, Math.floor((values.length - 1) / 2), values.length - 1].forEach(i => {
+    const t = svgEl('text', { x: x(i), y: H - 8, 'text-anchor': 'middle', class: 'axis-label' });
+    t.textContent = labels[i];
+    svg.appendChild(t);
+  });
+
+  // hover crosshair + hit targets
+  values.forEach((v, i) => {
+    const hit = svgEl('circle', { cx: x(i), cy: y(v), r: 10, fill: 'transparent', style: 'cursor:pointer' });
+    hit.addEventListener('mousemove', (e) => showTooltip(e, `<span class="t-label">${labels[i]}</span><br><b>${fmt(v)}${unit}</b>`));
+    hit.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(hit);
+  });
+}
+
+// ---- bar chart (single series, ranked) ----
+function drawBarChart(svgId, tableId, items, color, unit) {
+  const svg = document.getElementById(svgId);
+  svg.innerHTML = '';
+  const W = 520, H = 220, padL = 100, padR = 46, padT = 10, padB = 10;
+  const rowH = (H - padT - padB) / items.length;
+  const max = Math.max(...items.map(d => d.value));
+  const barMaxW = W - padL - padR;
+
+  const table = document.getElementById(tableId);
+  table.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+
+  items.forEach((d, i) => {
+    const y0 = padT + i * rowH;
+    const barH = Math.min(22, rowH - 10);
+    const barY = y0 + (rowH - barH) / 2;
+    const barW = (d.value / max) * barMaxW;
+
+    const label = svgEl('text', { x: padL - 10, y: barY + barH / 2 + 4, 'text-anchor': 'end', class: 'bar-label' });
+    label.textContent = d.name;
+    svg.appendChild(label);
+
+    const rect = svgEl('rect', { x: padL, y: barY, width: Math.max(barW, 2), height: barH, rx: 4, fill: color, style: 'cursor:pointer' });
+    rect.addEventListener('mousemove', (e) => showTooltip(e, `<span class="t-label">${d.name}</span><br><b>${d.value}${unit}</b>`));
+    rect.addEventListener('mouseleave', hideTooltip);
+    svg.appendChild(rect);
+
+    const val = svgEl('text', { x: padL + barW + 8, y: barY + barH / 2 + 4, class: 'bar-value' });
+    val.textContent = d.value + unit;
+    svg.appendChild(val);
+
+    const row = document.createElement('tr');
+    row.innerHTML = `<td>${d.name}</td><td>${d.value}${unit}</td>`;
+    table.appendChild(row);
+  });
+}
+
+function fmtK(v) { return v.toFixed(0); }
+function fmtPct(v) { return v.toFixed(1); }
+
+function renderKPIs(volume, approval) {
+  const totalVolume = volume.reduce((a, b) => a + b, 0);
+  const avgApproval = approval.reduce((a, b) => a + b, 0) / approval.length;
+  const volDelta = (((volume[volume.length - 1] - volume[0]) / volume[0]) * 100).toFixed(1);
+  const apprDelta = (approval[approval.length - 1] - approval[0]).toFixed(1);
+  const revenue = (totalVolume * 0.0184).toFixed(1); // illustrative avg-ticket-derived figure
+  const fraudRate = 0.34;
+
+  const tiles = [
+    { label: 'Total transactions', value: totalVolume.toLocaleString() + 'k', delta: `+${volDelta}% vs period start`, up: true },
+    { label: 'Avg approval rate', value: avgApproval.toFixed(1) + '%', delta: `+${apprDelta} pts vs period start`, up: true },
+    { label: 'Revenue (illustrative)', value: '£' + revenue + 'm', delta: 'Derived from volume × avg ticket', up: null },
+    { label: 'Fraud rate', value: fraudRate + '%', delta: '−0.06 pts vs prior period', up: true },
+  ];
+
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML = '';
+  tiles.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'kpi-tile';
+    const deltaClass = t.up === null ? '' : (t.up ? 'up' : 'down-bad');
+    const arrow = t.up === null ? '' : (t.up
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 15l6-6 6 6"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>');
+    div.innerHTML = `
+      <div class="label">${t.label}</div>
+      <div class="value">${t.value}</div>
+      <div class="delta ${deltaClass}">${arrow} ${t.delta}</div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function render(months) {
+  const vol = VOLUME.slice(VOLUME.length - months);
+  const appr = APPROVAL.slice(APPROVAL.length - months);
+  const labels = MONTHS.slice(MONTHS.length - months);
+
+  renderKPIs(vol, appr);
+  drawLineChart('volumeChart', labels, vol, getComputedStyle(document.documentElement).getPropertyValue('--series-1') || '#2a78d6', 'k', fmtK);
+  drawLineChart('approvalChart', labels, appr, getComputedStyle(document.documentElement).getPropertyValue('--series-2') || '#eb6834', '%', fmtPct);
+  drawBarChart('merchantChart', 'merchantTable', MERCHANTS, getComputedStyle(document.documentElement).getPropertyValue('--series-1') || '#2a78d6', '');
+  drawBarChart('fraudChart', 'fraudTable', FRAUD, getComputedStyle(document.documentElement).getPropertyValue('--series-2') || '#eb6834', '');
+}
+
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    render(parseInt(chip.dataset.range, 10));
+  });
+});
+
+document.querySelectorAll('.toggle-table').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = document.getElementById(btn.dataset.target);
+    const chart = target.previousElementSibling;
+    const showingTable = !target.hidden;
+    target.hidden = showingTable;
+    chart.hidden = !showingTable;
+    btn.textContent = showingTable ? 'View as table' : 'View as chart';
+  });
+});
+
+render(12);
+</script>

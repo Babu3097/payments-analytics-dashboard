@@ -436,7 +436,7 @@ document.querySelectorAll('.toggle-table').forEach(btn => {
     target.hidden = showingTable;
     // SVGElement has no reflecting `.hidden` IDL property, unlike HTMLElement,
     // so toggling it here would silently no-op — style.display works on any element.
-    chart.style.display = showingTable ? 'none' : '';
+    chart.style.display = showingTable ? '' : 'none';
     btn.textContent = showingTable ? 'View as table' : 'View as chart';
   });
 });
